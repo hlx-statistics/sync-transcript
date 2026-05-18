@@ -16,7 +16,7 @@
 复制给 Cursor Agent 的内容：
 
 ```text
-请在本项目（当前工作区根目录）安装 Cursor 会话同步 Hook：打开 GitHub 仓库 https://github.com/hlx-statistics/cursor-sync-transcript.git ，严格按该仓库 README 里「Cursor › 📋 给 Cursor Agent 的安装任务说明」执行；从当前分支拉取 `.cursor/hooks/sync-transcript.mjs` 并合并 `.cursor/hooks.json`，不要覆盖我已有的其它 Hook。
+请在本项目（当前工作区根目录）安装 Cursor 会话同步 Hook：打开 GitHub 仓库 https://github.com/hlx-statistics/sync-transcript.git ，严格按该仓库 README 里「Cursor › 📋 给 Cursor Agent 的安装任务说明」执行；从当前分支拉取 `.cursor/hooks/sync-transcript.mjs` 并合并 `.cursor/hooks.json`，不要覆盖我已有的其它 Hook。
 ```
 
 #### 📋 给 Cursor Agent 的安装任务说明
@@ -90,7 +90,7 @@
 复制给 Claude Code Agent 的内容：
 
 ```text
-请在本项目（当前工作区根目录）安装 Claude Code 会话同步 Hook：打开 GitHub 仓库 https://github.com/hlx-statistics/cursor-sync-transcript.git ，严格按该仓库 README 里「Claude Code › 📋 给 Claude Code Agent 的安装任务说明」执行；从当前分支拉取 `.claude/hooks/sync-export.mjs` 并合并 `.claude/settings.json` 的 `hooks.Stop`，不要覆盖我已有的其它 Hook。
+请在本项目（当前工作区根目录）安装 Claude Code 会话同步 Hook：打开 GitHub 仓库 https://github.com/hlx-statistics/sync-transcript.git ，严格按该仓库 README 里「Claude Code › 📋 给 Claude Code Agent 的安装任务说明」执行；从当前分支拉取 `.claude/hooks/sync-export.mjs` 并合并 `.claude/settings.json` 的 `hooks.Stop`，不要覆盖我已有的其它 Hook。
 ```
 
 #### 📋 给 Claude Code Agent 的安装任务说明

@@ -252,7 +252,7 @@
 
 导出为 Markdown：标题、导出时间、**User** / **GitHub Copilot** 分块（含工具调用摘要）。
 
-**示例**：[`chat/20260519--7743fdca-fc3c-4a31-b16f-664cc22b0a58.md`](chat/20260519--7743fdca-fc3c-4a31-b16f-664cc22b0a58.md)
+**示例**：[`chat/20260519--911fb7fc-a85e-4b56-958f-bb1fa12910f0.md`](chat/20260519--911fb7fc-a85e-4b56-958f-bb1fa12910f0.md)（VS Code GitHub Copilot Agent 导出，含工具调用摘要）
 
 ### 🗑️ 卸载
 

@@ -1,11 +1,12 @@
 # sync-transcript
 
-将会话内容同步到项目内 `chat/` 目录，便于版本管理与检索。
+将会话内容同步到项目内 `chat/` 目录，便于版本管理与检索。支持 **Cursor**、**Claude Code**、**VS Code（GitHub Copilot Agent）**。
 
 | 工具 | Hook 时机 | 配置文件 | 输出 |
 |------|-----------|----------|------|
 | [Cursor](#cursor) | 每轮助手回复后（`afterAgentResponse`） | `.cursor/hooks.json` | `chat/YYYYMMDD--<conversation_id>.md` |
 | [Claude Code](#claude-code) | 会话停止时（`Stop`） | `.claude/settings.json` | `chat/YYYYMMDD--<session_id>.txt` |
+| [VS Code（GitHub Copilot）](#vs-code-github-copilot) | Agent 会话停止时（`Stop`） | `.github/hooks/*.json` | `chat/YYYYMMDD--<session_id>.md` |
 
 ---
 
@@ -168,14 +169,107 @@
 
 ---
 
+## VS Code（GitHub Copilot）
+
+在 **VS Code** 中通过 **GitHub Copilot** 扩展使用 Agent 聊天；Hook 由 VS Code 平台在会话生命周期节点调用（与 [Agent hooks（Preview）](https://code.visualstudio.com/docs/copilot/customization/hooks) 一致）。配置默认放在 `.github/hooks/` 目录下的 `*.json` 文件中（非 GitHub 网站 Webhooks）。
+
+> **说明**：与 Cursor 的「每轮导出」不同，Copilot 版在 **Agent 会话结束**（`Stop`）时写入 `chat/`；同一 `sessionId` 的文件会被覆盖更新。
+
+### 🤖 自动安装
+
+复制给 VS Code / Copilot Agent 的内容：
+
+```text
+请在本项目（当前工作区根目录）安装 VS Code GitHub Copilot 会话同步 Hook：打开 GitHub 仓库 https://github.com/hlx-statistics/sync-transcript.git ，严格按该仓库 README 里「VS Code（GitHub Copilot）› 📋 给 Agent 的安装任务说明」执行；从当前分支拉取 `.github/hooks/sync-vscode.mjs` 与 `.github/hooks/sync-transcript.json`，不要覆盖我已有的其它 Hook。
+```
+
+#### 📋 给 Agent 的安装任务说明
+
+**目标**：在用户当前打开的**工作区根目录**部署 `Stop` Hook，使 Copilot Agent 会话结束时自动生成 `chat/YYYYMMDD--<session_id>.md`。
+
+**约束**：
+
+- 所有路径相对于工作区根；Hook JSON 中 `command` 必须为：`node .github/hooks/sync-vscode.mjs`（与本文档一致）。
+- `node` 须在用户环境中可用（`node -v`）。
+- VS Code 默认扫描 `ROOT/.github/hooks/*.json`；若已存在其它 Hook 配置文件，**禁止整文件覆盖**：只合并 `hooks.Stop`，保留其余键与其它 Hook。
+- **幂等**：若任一 `*.json` 的 `hooks.Stop` 数组中已有 `command` 等于 `node .github/hooks/sync-vscode.mjs`，则不再追加。
+- 创建目录：`mkdir -p`（POSIX）或 `New-Item -ItemType Directory -Force`（PowerShell）。
+
+**安装清单**：
+
+1. 令 `ROOT` = 工作区根目录（VS Code 打开的文件夹）。
+2. 确保目录存在：`ROOT/.github/hooks/`。
+3. 将本仓库中的 `.github/hooks/sync-vscode.mjs` 写入 `ROOT/.github/hooks/sync-vscode.mjs`（内容与 upstream 一致）。
+4. 处理 `ROOT/.github/hooks/sync-transcript.json`：
+   - **不存在**：写入下文「手动安装」中的 `sync-transcript.json` 示例全文。
+   - **已存在**：解析 JSON；若无 `hooks`，设为 `{}`。将 `hooks.Stop` 视为数组（缺失则 `[]`）；按上文幂等规则追加本条 `command`；写回文件且保持合法 JSON 格式。也可新建 `ROOT/.github/hooks/sync-transcript.json`，勿与现有 Hook 冲突。
+5. 告知用户：结束一次 Copilot Agent 会话后，按「安装后自检」检查 `ROOT/chat/*.md`；若 Hook 未触发可重启 VS Code，或在命令面板运行 **Chat: Configure Hooks**。
+
+### 🛠️ 手动安装
+
+在工作区根目录：
+
+1. 将 `sync-vscode.mjs` 保存为 `.github/hooks/sync-vscode.mjs`（无目录则先建 `.github/hooks/`）。
+2. 在 `.github/hooks/` 下新建或编辑 Hook 配置（文件名任意，须为 `.json`）。若没有，使用下列全文；若已有其它 Hook，只在 `hooks.Stop` 里**追加**一条（勿重复相同 `command`）：
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "node .github/hooks/sync-vscode.mjs"
+      }
+    ]
+  }
+}
+```
+
+### ⚙️ 运行环境
+
+- VS Code（或 Insiders）+ **GitHub Copilot** 扩展；需支持 Agent Hooks（Preview）。部分组织可能通过策略禁用 Hooks。
+- 在 **Agent 会话**中验证（普通 Inline Chat 不一定写入同一套转写）。
+- `node` 在 `PATH` 中；Hook stdin 提供 `cwd`、`sessionId`（或 `session_id`）、`transcript_path`。
+
+**可选环境变量**：
+
+| 变量 | 说明 |
+|------|------|
+| `VSCODE_EXPORT_DIR` | 导出目录，默认 `<cwd>/chat` |
+| `VSCODE_EXPORT_FILE` | 固定输出文件路径（设置后忽略日期/会话命名规则） |
+| `CLAUDE_EXPORT_DIR` | 未设置 `VSCODE_EXPORT_DIR` 时的回退目录（与 Claude Code 脚本共用逻辑时） |
+| `CLAUDE_EXPORT_FILE` | 固定输出路径（Claude 格式回退为 `.txt` 时使用） |
+
+**格式回退**：脚本根据转写 JSONL 自动识别——Copilot 转写（`session.start` / `user.message` 等）→ **Markdown（`.md`）**；若为 Claude Code 旧格式 → **终端风格 `.txt`**（与 `.claude/hooks/sync-export.mjs` 一致）。
+
+**兼容配置**：VS Code 也会加载 `.claude/settings.json` 中的 `Stop` Hook；若你已用 Claude Code 配置，可让 `command` 指向同一 `sync-vscode.mjs`，无需重复维护两份逻辑（注意避免同一事件注册两次相同命令）。
+
+### ✅ 安装后自检
+
+结束一次 Copilot Agent 会话后，工作区根下应出现 `chat/YYYYMMDD--<session_id>.md`。可在输出面板查看 **GitHub Copilot Chat Hooks** 是否执行成功。
+
+### 📝 导出格式（Markdown）
+
+导出为 Markdown：标题、导出时间、**User** / **GitHub Copilot** 分块（含工具调用摘要）。
+
+**示例**：[`chat/20260519--7743fdca-fc3c-4a31-b16f-664cc22b0a58.md`](chat/20260519--7743fdca-fc3c-4a31-b16f-664cc22b0a58.md)
+
+### 🗑️ 卸载
+
+从 `.github/hooks/*.json` 中移除对应 `Stop` → `command` 项；按需删除 `.github/hooks/sync-vscode.mjs` 及 `chat/*.md`（若与 Cursor 共用 `chat/`，勿误删其它工具的导出文件）。
+
+---
+
 ## 📁 项目结构
 
 | 路径 | 说明 |
 |------|------|
 | `.cursor/hooks.json` | Cursor：注册 `afterAgentResponse` |
 | `.cursor/hooks/sync-transcript.mjs` | Cursor：导出脚本 → `.md` |
-| `.claude/settings.json` | Claude Code：注册 `Stop` |
+| `.claude/settings.json` | Claude Code：注册 `Stop`（VS Code 亦可加载） |
 | `.claude/hooks/sync-export.mjs` | Claude Code：导出脚本 → `.txt` |
+| `.github/hooks/*.json` | VS Code Copilot：注册 `Stop` 等 Hook |
+| `.github/hooks/sync-vscode.mjs` | VS Code Copilot：导出脚本 → `.md`（Copilot 转写）或 `.txt`（Claude 转写回退） |
 | `chat/` | 导出目录（`.md` 与 `.txt` 可并存） |
 | `LICENSE` | MIT 许可全文 |
 
@@ -186,6 +280,7 @@
 | 路径 | 说明 |
 |------|------|
 | `chat/YYYYMMDD--<conversation_id>.md` | Cursor 会话 |
+| `chat/YYYYMMDD--<session_id>.md` | VS Code GitHub Copilot Agent 会话 |
 | `chat/YYYYMMDD--<session_id>.txt` | Claude Code 会话 |
 
 若不希望把聊天记录提交到远端，可将 `chat/` 加入 `.gitignore`。
